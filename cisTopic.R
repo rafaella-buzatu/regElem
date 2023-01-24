@@ -58,5 +58,14 @@ library(TxDb.Hsapiens.UCSC.hg19.knownGene)
 txdb <- TxDb.Hsapiens.UCSC.hg19.knownGene
 getBigwigFiles(cisTopicObject, path= file.path(pathToOutputsDir, 'cisTopicBigWig'), seqlengths=seqlengths(txdb))
 
+#Binarize topics; get most representative regions per topic
+cisTopicObject <- binarizecisTopicsModified(cisTopicObject, pathFolder = pathToPlotsDir, thrP=0.975)
+
+#Export region sets to bed files
+getBedFiles(cisTopicObject, path=file.path(pathToOutputsDir,'cisTopicsBed'))
+
+#Run tSNE 
+cisTopicObject <- runtSNE(cisTopicObject, target='region', perplexity=200, check_duplicates=FALSE)
+
 #Save the cisTopicObject
 saveRDS(cisTopicObject, file= file.path(pathToOutputsDir,'cisTopicObject.Rds'))

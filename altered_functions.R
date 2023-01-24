@@ -1,4 +1,4 @@
-selectModelModified <- function (object, select = NULL, type = "derivative", keepBinaryMatrix = TRUE,
+selectModelModified <- function (object, pathFolder, select = NULL, type = "derivative", keepBinaryMatrix = TRUE,
           keepModels = TRUE, ...)
 {
   if (as.vector(class(object)) == "cisTopic") {
@@ -40,7 +40,7 @@ selectModelModified <- function (object, select = NULL, type = "derivative", kee
       }
     }
   }
-  pdf(file = 'model_selection.pdf')
+  pdf(file = file.path(pathFolder, 'model_selection.pdf'))
   par(bty = "n")
   plot(object.log.lik$topics, object.log.lik$LL, xlab = "Number of topics",
        ylab = "log P(D|M,T)", type = "o", pch = 16, col = "black",

@@ -6,8 +6,12 @@ output: html_notebook
 ### Initialization cisTopic Object
 
 In this project, we make use of the software **cisTopic** (Bravo González-Blas et al., 2019), a framework employing the latent Dirichlet allocation (LDA) (Blei et al., 2003), that allows us to co-cluster DNA regulatory regions and cell types. 
+```{r}
+#Load packages
+library (cisTopic)
+source('utils/altered_functions.R')
+```
 
-Define directories
 ```{r}
 #Define path to store plots
 pathToPlotsDir = 'plots'
@@ -27,7 +31,6 @@ ATACseq_data = readRDS('ATACseq_data/Zhang_BICCN-H_20190523-20190611_huMOp_Final
 
 #Subset if needed
 #ATACseq_data = ATACseq_data[1:2000,1:2000]
-
 ```
 
 In order to run cisTopic, we must convert our input peak matrix into a **cisTopic object**. We can then add extra information to this object from the given metadata file. 

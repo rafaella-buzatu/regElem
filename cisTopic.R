@@ -1,6 +1,6 @@
 #Load packages
 library (cisTopic)
-source('altered_functions.R')
+source('utils/altered_functions.R')
 
 #Define path to store plots
 pathToPlotsDir = 'plots'

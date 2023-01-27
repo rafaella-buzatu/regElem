@@ -1,6 +1,9 @@
 #Load packages
 library (cisTopic)
+library("writexl")
 source('utils/altered_functions.R')
+source('utils/data.R')
+
 
 #Define path to store plots
 pathToPlotsDir = 'plots'
@@ -16,7 +19,7 @@ if (!dir.exists(file.path (pathToOutputsDir))){
 
 #Load ATACseq data
 ATACseqData = readRDS('ATAC-seq_data/Zhang_BICCN-H_20190523-20190611_huMOp_Final_AC_Peaks.RDS')
-#ATACseq_data = ATACseq_data[, 1:2000]
+#ATACseqData = ATACseqData[, 1:2000]
 
 #Transform matrix into cisTopic object
 cisTopicObject <- createcisTopicObject(ATACseqData, project.name='ATACseq_clustering')
@@ -40,9 +43,11 @@ cisTopicObject <- selectModelModified(cisTopicObject, pathFolder = pathToPlotsDi
 #Run Umap
 cisTopicObject <- runUmap(cisTopicObject, target='cell')
 
+#cell types(subset) vs clusters
+
 #Create Umap Plot
 pdf(file.path(pathToPlotsDir, 'Umap.pdf'))
-plotFeatures(cisTopicObject, method='Umap', target='cell', topic_contr=NULL, colorBy=c('subClass', 'level1'))
+plotFeatures(cisTopicObject, method='Umap', target='cell', topic_contr=NULL, colorBy=c('subClass'))
 dev.off ()
 
 pdf(file.path(pathToPlotsDir, 'heatmap.pdf'))
@@ -53,19 +58,44 @@ dev.off()
 #Get scores showing likelihood of region to belong to a topic
 cisTopicObject <- getRegionsScores(cisTopicObject, method='NormTop', scale=TRUE)
 
-#Generate BigWig files to observe scored regions on the genome
-library(TxDb.Hsapiens.UCSC.hg19.knownGene)
-txdb <- TxDb.Hsapiens.UCSC.hg19.knownGene
-getBigwigFiles(cisTopicObject, path= file.path(pathToOutputsDir, 'cisTopicBigWig'), seqlengths=seqlengths(txdb))
+
+#GATHER INFORMATION
+#Extract dataframe with scores for all regions for all topics
+regionScoresAllTopics = cisTopicObject@region.data
+#Read from Rds
+#regionScoresAllTopics = readRDS(file.path(pathToOutputsDir,'regionScoresAllTopics.Rds'))
 
 #Binarize topics; get most representative regions per topic
 cisTopicObject <- binarizecisTopicsModified(cisTopicObject, pathFolder = pathToPlotsDir, thrP=0.975)
 
+#Get regions for each topic and corresponding scores
+regionScoresPerTopic = cisTopicObject@binarized.cisTopics
+#Read from Rds
+#regionScoresPerTopic = readRDS(file.path(pathToOutputsDir,'regionScoresPerTopic.Rds'))
+
+#Combine information in final dataframe
+regionData <- createRegionDataFrame (regionScoresAllTopics, regionScoresPerTopic)
+#Save dataframe
+write_xlsx (regionData, file.path(pathToOutputsDir,'regionData.xlsx'))
+
+# RESULTS VISUALISATION
 #Export region sets to bed files
 getBedFiles(cisTopicObject, path=file.path(pathToOutputsDir,'cisTopicsBed'))
 
 #Run tSNE 
 cisTopicObject <- runtSNE(cisTopicObject, target='region', perplexity=200, check_duplicates=FALSE)
+
+#ANNOTATION
+#Annotate GO terms to topics
+library(org.Hs.eg.db)
+cisTopicObject <- annotateRegions(cisTopicObject, txdb=TxDb.Hsapiens.UCSC.hg19.knownGene, annoDb='org.Hs.eg.db')
+
+#Plot heatmap
+pdf(file.path(pathToPlotsDir, 'GOsignaturesPerTopic.pdf'))
+par(mfrow=c(1,1))
+signaturesHeatmap(cisTopicObject, selected.signatures = 'annotation')
+plotFeatures(cisTopicObject, method='tSNE', target='region', topic_contr=NULL, colorBy=c('annotation'), cex.legend = 0.8, factor.max=.75, dim=2, legend=TRUE, intervals=20, colVars = colVars)
+dev.off()
 
 #Save the cisTopicObject
 saveRDS(cisTopicObject, file= file.path(pathToOutputsDir,'cisTopicObject.Rds'))

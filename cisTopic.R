@@ -1,6 +1,7 @@
 #Load packages
 library (cisTopic)
-library("writexl")
+library(ritexl)
+library(readxl)
 source('utils/altered_functions.R')
 source('utils/data.R')
 
@@ -74,9 +75,13 @@ regionScoresPerTopic = cisTopicObject@binarized.cisTopics
 #regionScoresPerTopic = readRDS(file.path(pathToOutputsDir,'regionScoresPerTopic.Rds'))
 
 #Combine information in final dataframe
-regionData <- createRegionDataFrame (regionScoresAllTopics, regionScoresPerTopic)
+regionDataTopics <- createRegionDataFrame (regionScoresAllTopics, regionScoresPerTopic)
+#Add DNA sequences for each region
+regionData <- addDNAsequences (regionDataTopics)
 #Save dataframe
 write_xlsx (regionData, file.path(pathToOutputsDir,'regionData.xlsx'))
+#Read df from excel
+regionData = read_xlsx(file.path(pathToOutputsDir,'regionData.xlsx'))
 
 # RESULTS VISUALISATION
 #Export region sets to bed files

@@ -1,3 +1,5 @@
+library(BSgenome.Hsapiens.UCSC.hg38)
+
 createRegionDataFrame <- function (regionScoresAllTopics, regionScoresPerTopic)
 {
   #' Generates a dataframe combining the information from the input variables.
@@ -37,5 +39,24 @@ createRegionDataFrame <- function (regionScoresAllTopics, regionScoresPerTopic)
   
   close(pb)
   #Return new df
+  return (regionData)
+}
+
+addDNAsequences <- function (regionData){
+  #' Adds the corresponding DNA sequences to each row of the input dataframe
+  
+  regionData ['DNAseq'] <- NA
+  #Define progress bar
+  pb = txtProgressBar(min = 0, max = length(regionData), style = 3, width = 50) 
+  
+  for (row in 1:nrow(regionData)) {
+  dnaSeq <- as.character(Biostrings::getSeq(BSgenome.Hsapiens.UCSC.hg38, 
+                                            unlist(regionData[row, 'seqnames']), 
+                                            unlist(regionData[row, 'start']), 
+                                            unlist(regionData[row, 'end']) ))
+  regionData[row, 'DNAseq'] = dnaSeq
+  setTxtProgressBar(pb, row)
+  }
+  close(pb)
   return (regionData)
 }

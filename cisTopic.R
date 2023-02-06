@@ -1,9 +1,10 @@
 #Load packages
 library (cisTopic)
-library(ritexl)
+library(writexl)
 library(readxl)
 source('utils/altered_functions.R')
 source('utils/data.R')
+source('utils/plots.R')
 
 
 #Define path to store plots
@@ -44,16 +45,23 @@ cisTopicObject <- selectModelModified(cisTopicObject, pathFolder = pathToPlotsDi
 #Run Umap
 cisTopicObject <- runUmap(cisTopicObject, target='cell')
 
-#cell types(subset) vs clusters
-
 #Create Umap Plot
 pdf(file.path(pathToPlotsDir, 'Umap.pdf'))
 plotFeatures(cisTopicObject, method='Umap', target='cell', topic_contr=NULL, colorBy=c('subClass'))
 dev.off ()
 
-pdf(file.path(pathToPlotsDir, 'heatmap.pdf'))
-cellTopicHeatmap(cisTopicObject, method='Probability', colorBy=c('subclass'))
-dev.off()
+#Extract Umap scores for plotting
+#UMAPscores = cisTopicObject@dr$cell
+#Extract scores for topic assignment per cell
+cellTopicAssignments <- cisTopicObject@selected.model$document_expects 
+#read from Rds
+cellTopicAssignments <- readRDS(file.path(pathToOutputsDir,'cellTopicAssignments.Rds'))
+#Convert to dataframe with all info
+cellData <- createCellTopicDataFrame (cellTopicAssignments, UMAPscores)
+
+#Create plot
+
+
 
 ### REGULATORY REGIONS
 #Get scores showing likelihood of region to belong to a topic
@@ -93,13 +101,14 @@ cisTopicObject <- runtSNE(cisTopicObject, target='region', perplexity=200, check
 #ANNOTATION
 #Annotate GO terms to topics
 library(org.Hs.eg.db)
-cisTopicObject <- annotateRegions(cisTopicObject, txdb=TxDb.Hsapiens.UCSC.hg19.knownGene, annoDb='org.Hs.eg.db')
+library("TxDb.Hsapiens.UCSC.hg38.knownGene")
+cisTopicObject <- annotateRegions(cisTopicObject, txdb=TxDb.Hsapiens.UCSC.hg38.knownGene, annoDb='org.Hs.eg.db')
 
 #Plot heatmap
 pdf(file.path(pathToPlotsDir, 'GOsignaturesPerTopic.pdf'))
 par(mfrow=c(1,1))
 signaturesHeatmap(cisTopicObject, selected.signatures = 'annotation')
-plotFeatures(cisTopicObject, method='tSNE', target='region', topic_contr=NULL, colorBy=c('annotation'), cex.legend = 0.8, factor.max=.75, dim=2, legend=TRUE, intervals=20, colVars = colVars)
+plotFeatures(cisTopicObject, method='tSNE', target='region', topic_contr=NULL, colorBy=c('annotation'), cex.legend = 0.8, factor.max=.75, dim=2, legend=TRUE, intervals=20)
 dev.off()
 
 #Save the cisTopicObject

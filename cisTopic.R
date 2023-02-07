@@ -16,7 +16,7 @@ if (!dir.exists(file.path (pathToPlotsDir))){
 #Define path to store outputs
 pathToOutputsDir = 'outputs'
 if (!dir.exists(file.path (pathToOutputsDir))){
-  dir.create(file.path (pathToOutputDir))
+  dir.create(file.path (pathToOutputsDir))
 }
 
 #Load ATACseq data
@@ -51,16 +51,24 @@ plotFeatures(cisTopicObject, method='Umap', target='cell', topic_contr=NULL, col
 dev.off ()
 
 #Extract Umap scores for plotting
-#UMAPscores = cisTopicObject@dr$cell
+UMAPscores = cisTopicObject@dr$cell[[1]]
+#Read from Rds
+#UMAPscores = readRDS(file.path(pathToOutputsDir,'UMAPscores.Rds'))[[1]]
+
 #Extract scores for topic assignment per cell
 cellTopicAssignments <- cisTopicObject@selected.model$document_expects 
 #read from Rds
-cellTopicAssignments <- readRDS(file.path(pathToOutputsDir,'cellTopicAssignments.Rds'))
+#cellTopicAssignments <- readRDS(file.path(pathToOutputsDir,'cellTopicAssignments.Rds'))
 #Convert to dataframe with all info
-cellData <- createCellTopicDataFrame (cellTopicAssignments, UMAPscores)
+cellData <- createCellTopicDataFrame (cellTopicAssignments, UMAPscores, metadata)
+
+#Save dataframe
+write_xlsx (cellData, file.path(pathToOutputsDir,'cellData.xlsx'))
+#Read df from excel
+#cellData = read_xlsx(file.path(pathToOutputsDir,'cellData.xlsx'))
 
 #Create plot
-
+createUMAPsPerTopic(cellData, pathToPlotsDir)
 
 
 ### REGULATORY REGIONS
@@ -84,12 +92,14 @@ regionScoresPerTopic = cisTopicObject@binarized.cisTopics
 
 #Combine information in final dataframe
 regionDataTopics <- createRegionDataFrame (regionScoresAllTopics, regionScoresPerTopic)
+#Subset
+#regionDataTopics <- regionDataTopics [1:2000,]
 #Add DNA sequences for each region
 regionData <- addDNAsequences (regionDataTopics)
 #Save dataframe
 write_xlsx (regionData, file.path(pathToOutputsDir,'regionData.xlsx'))
 #Read df from excel
-regionData = read_xlsx(file.path(pathToOutputsDir,'regionData.xlsx'))
+#regionData = read_xlsx(file.path(pathToOutputsDir,'regionData.xlsx'))
 
 # RESULTS VISUALISATION
 #Export region sets to bed files

@@ -74,7 +74,7 @@ addDNAsequences <- function (regionData){
   
   regionData ['DNAseq'] <- NA
   #Define progress bar
-  pb = txtProgressBar(min = 0, max = length(regionData), style = 3, width = 50) 
+  pb = txtProgressBar(min = 0, max = nrow(regionData), style = 3, width = 50) 
   
   for (row in 1:nrow(regionData)) {
   dnaSeq <- as.character(Biostrings::getSeq(BSgenome.Hsapiens.UCSC.hg38, 
@@ -88,17 +88,19 @@ addDNAsequences <- function (regionData){
   return (regionData)
 }
 
-createCellTopicDataFrame <- function (cellTopicAssignments, UMAPscores) {
-  
+createCellTopicDataFrame <- function (cellTopicAssignments, UMAPscores, metadata) {
+
   #' Generates a dataframe combining the information about the topic assignment
   #' scores for each input cell with the UMAP scores for plotting.
   #'
   #' cellTopicAssignments = A dataframe containing the topic scores for each cell.
   #' 
-  #' UMAPscores = 
+  #' UMAPscores = A matrix containing the UMAP coordinates of the cell-topic assignments
+  #' 
+  #' metadata = A dataframe with metadata for each cell
   
   # Create a Vector with the column names
-  columns = c('cell', 'UMAP1', 'UMAP2')
+  columns = c('sampleName', 'UMAP1', 'UMAP2', 'cellType')
   for (i in 1:9){
     columns = append (columns, paste(c('Topic', i), collapse = ""))
   }
@@ -108,7 +110,7 @@ createCellTopicDataFrame <- function (cellTopicAssignments, UMAPscores) {
   # Assign column names
   colnames(cellData) = columns
   #Add cell names as column to new df
-  cellData [, 'cell'] = colnames(cellTopicAssignments)
+  cellData [, 'sampleName'] = colnames(cellTopicAssignments)
   
   #Iterate over all cells
   for (row in 1:nrow(cellData)) {
@@ -117,6 +119,11 @@ createCellTopicDataFrame <- function (cellTopicAssignments, UMAPscores) {
       cellData[row, paste (c('Topic'),topic, sep = '')] = cellTopicAssignments [topic, row]
     }
     #Add UMAP coordinates 
+    cellData[row, 'UMAP1'] = UMAPscores[cellData[row, 'sampleName'], 'UMAP1']
+    cellData[row, 'UMAP2'] = UMAPscores[cellData[row, 'sampleName'], 'UMAP2']
+    
+    #Add cell type
+    cellData[row, 'cellType'] = metadata['subclass'][metadata['sample_name'] == cellData[row, 'sampleName']]
   }
   return (cellData)
 }

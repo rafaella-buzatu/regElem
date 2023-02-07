@@ -10,12 +10,14 @@ for (i in 1:9){
   ggplot(data = cellData, 
          aes(x = UMAP1, 
              y = UMAP2, 
-             color = paste(c('Topic', i), collapse = "")))+
+             color = cellType))+
+             #color = paste(c('Topic', i), collapse = "")),
+             #shape = cellType)+
   geom_point()+
   labs(x = "UMAP1",
        y = "UMAP2",
-       subtitle = "UMAP plot") +
-  scale_color_gradient()
+       subtitle = "UMAP plot") 
+  #scale_color_gradient()
 
 }
 dev.off()

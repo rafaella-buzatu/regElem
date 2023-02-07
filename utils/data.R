@@ -1,7 +1,7 @@
 library(BSgenome.Hsapiens.UCSC.hg38)
 
 createRegionDataFrame <- function (regionScoresAllTopics, regionScoresPerTopic, 
-                                   scoreType = 'threshold')
+                                   scoreType = 'all')
 {
   #' Generates a dataframe combining the information from the input variables.
   #' 
@@ -17,21 +17,23 @@ createRegionDataFrame <- function (regionScoresAllTopics, regionScoresPerTopic,
   #'             per region:
   #'   binary = binary above threshold,
   #'   threshold = numerical score above threshold, 
-  #'   all = all numerical scores 
+  #'   all = all numerical scores (DEFAULT)
   
+  #Get number of topics
+  topicNo = ncol(regionScoresAllTopics[ , grepl( "Topic" , names( regionScoresAllTopics ) )])
   
   #If we want to keep all scores, we simply rename the columns of the input df
   if (scoreType == 'all'){
     
     regionData = regionScoresAllTopics
     columns = c('seqnames','start','end', 'width','nCounts','nCells')
-    for (i in 1:9){
+    for (i in 1:topicNo){
       columns = append (columns,  paste(c('Topic', i), collapse = ""))
     }
     colnames(regionData) = columns
     
   } else {
-  #Otehrwise, we create dataframe by subsetting the input df with all topics
+  #Otherwise, we create dataframe by subsetting the input df with all topics
   regionData <- subset(regionScoresAllTopics, select=c('seqnames','start','end',
                                                        'width','nCounts','nCells'))
   
@@ -88,20 +90,28 @@ addDNAsequences <- function (regionData){
   return (regionData)
 }
 
-createCellTopicDataFrame <- function (cellTopicAssignments, UMAPscores, metadata) {
+createCellTopicDataFrame <- function (cellTopicAssignments, dimReductionCoords , metadata) {
 
   #' Generates a dataframe combining the information about the topic assignment
   #' scores for each input cell with the UMAP scores for plotting.
   #'
   #' cellTopicAssignments = A dataframe containing the topic scores for each cell.
   #' 
-  #' UMAPscores = A matrix containing the UMAP coordinates of the cell-topic assignments
+  #' dimReductionCoords  = A matrix containing the UMAP coordinates of the cell-topic assignments
   #' 
   #' metadata = A dataframe with metadata for each cell
   
+  #Get number of topics
+  topicNo = nrow(cellTopicAssignments)
+  
+  #Extract tSNE and UMAP coordinates
+  tSNEscores = dimReductionCoords$tSNE
+  UMAPscores = dimReductionCoords$Umap
+  
   # Create a Vector with the column names
-  columns = c('sampleName', 'UMAP1', 'UMAP2', 'cellType')
-  for (i in 1:9){
+  columns = c('sampleName', 'UMAP1', 'UMAP2','tSNE1', 'tSNE2', 'cellType')
+  
+  for (i in 1:topicNo){
     columns = append (columns, paste(c('Topic', i), collapse = ""))
   }
  
@@ -115,12 +125,16 @@ createCellTopicDataFrame <- function (cellTopicAssignments, UMAPscores, metadata
   #Iterate over all cells
   for (row in 1:nrow(cellData)) {
     #Add topic scores for each cell entry
-    for (topic in 1:9) { 
+    for (topic in 1:topicNo) { 
       cellData[row, paste (c('Topic'),topic, sep = '')] = cellTopicAssignments [topic, row]
     }
     #Add UMAP coordinates 
     cellData[row, 'UMAP1'] = UMAPscores[cellData[row, 'sampleName'], 'UMAP1']
     cellData[row, 'UMAP2'] = UMAPscores[cellData[row, 'sampleName'], 'UMAP2']
+    
+    #Add tSNE coordinates 
+    cellData[row, 'tSNE1'] = tSNEscores[cellData[row, 'sampleName'], 'tSNE1']
+    cellData[row, 'tSNE2'] = tSNEscores[cellData[row, 'sampleName'], 'tSNE2']
     
     #Add cell type
     cellData[row, 'cellType'] = metadata['subclass'][metadata['sample_name'] == cellData[row, 'sampleName']]

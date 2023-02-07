@@ -27,7 +27,7 @@ ATACseqData = readRDS('ATAC-seq_data/Zhang_BICCN-H_20190523-20190611_huMOp_Final
 cisTopicObject <- createcisTopicObject(ATACseqData, project.name='ATACseq_clustering')
 
 #Read metadata from fileATAC
-metadata <- read.delim('ATAC-seq_data/Zhang_BICCN-H_20190523-20190611_huMOp_Final_Sample_Metadata.txt')
+metadataOrig <- read.delim('ATAC-seq_data/Zhang_BICCN-H_20190523-20190611_huMOp_Final_Sample_Metadata.txt')
 #metadata = metadata [1:2000, ]
 
 #Give object and dataframe the same row names
@@ -41,42 +41,41 @@ cisTopicObject <- runWarpLDAModels(cisTopicObject, topic=c(2:15, 20, 25, 35, 40,
 #Select best model
 cisTopicObject <- selectModelModified(cisTopicObject, pathFolder = pathToPlotsDir, type='derivative')
 
-### CELL TYPES
+
+
+######   CELL TYPES
 #Run Umap
 cisTopicObject <- runUmap(cisTopicObject, target='cell')
+#Run tSNE
+cisTopicObject <- runtSNE(cisTopicObject, target='cell')
 
-#Create Umap Plot
-pdf(file.path(pathToPlotsDir, 'Umap.pdf'))
-plotFeatures(cisTopicObject, method='Umap', target='cell', topic_contr=NULL, colorBy=c('subClass'))
-dev.off ()
-
-#Extract Umap scores for plotting
-UMAPscores = cisTopicObject@dr$cell[[1]]
+#Extract Umap and tSNE scores for plotting
+dimReductionCoords = cisTopicObject@dr$cell
 #Read from Rds
-#UMAPscores = readRDS(file.path(pathToOutputsDir,'UMAPscores.Rds'))[[1]]
+#dimReductionCoords = readRDS(file.path(pathToOutputsDir,'dimReductionCoords.Rds'))
 
 #Extract scores for topic assignment per cell
 cellTopicAssignments <- cisTopicObject@selected.model$document_expects 
 #read from Rds
 #cellTopicAssignments <- readRDS(file.path(pathToOutputsDir,'cellTopicAssignments.Rds'))
 #Convert to dataframe with all info
-cellData <- createCellTopicDataFrame (cellTopicAssignments, UMAPscores, metadata)
+cellData <- createCellTopicDataFrame (cellTopicAssignments, dimReductionCoords, metadataOrig)
 
 #Save dataframe
 write_xlsx (cellData, file.path(pathToOutputsDir,'cellData.xlsx'))
 #Read df from excel
 #cellData = read_xlsx(file.path(pathToOutputsDir,'cellData.xlsx'))
 
-#Create plot
+#Create plots
 createUMAPsPerTopic(cellData, pathToPlotsDir)
+createtSNEsPerTopic(cellData, pathToPlotsDir)
 
 
-### REGULATORY REGIONS
+###### REGULATORY REGIONS
+
 #Get scores showing likelihood of region to belong to a topic
 cisTopicObject <- getRegionsScores(cisTopicObject, method='NormTop', scale=TRUE)
 
-
-#GATHER INFORMATION
 #Extract dataframe with scores for all regions for all topics
 regionScoresAllTopics = cisTopicObject@region.data
 #Read from Rds
@@ -91,7 +90,7 @@ regionScoresPerTopic = cisTopicObject@binarized.cisTopics
 #regionScoresPerTopic = readRDS(file.path(pathToOutputsDir,'regionScoresPerTopic.Rds'))
 
 #Combine information in final dataframe
-regionDataTopics <- createRegionDataFrame (regionScoresAllTopics, regionScoresPerTopic)
+regionDataTopics <- createRegionDataFrame (regionScoresAllTopics, regionScoresPerTopic )
 #Subset
 #regionDataTopics <- regionDataTopics [1:2000,]
 #Add DNA sequences for each region
@@ -102,8 +101,6 @@ write_xlsx (regionData, file.path(pathToOutputsDir,'regionData.xlsx'))
 #regionData = read_xlsx(file.path(pathToOutputsDir,'regionData.xlsx'))
 
 # RESULTS VISUALISATION
-#Export region sets to bed files
-getBedFiles(cisTopicObject, path=file.path(pathToOutputsDir,'cisTopicsBed'))
 
 #Run tSNE 
 cisTopicObject <- runtSNE(cisTopicObject, target='region', perplexity=200, check_duplicates=FALSE)

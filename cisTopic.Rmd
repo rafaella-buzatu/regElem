@@ -36,10 +36,10 @@ In order to run cisTopic, we must convert our input peak matrix into a **cisTopi
 cisTopicObject <- createcisTopicObject(ATACseq_data, project.name='ATACseq_clustering')
 
 #Read metadata from txt file 
-metadata <- read.delim('ATAC-seq_data/Zhang_BICCN-H_20190523-20190611_huMOp_Final_Sample_Metadata.txt')
+metadataOrig <- read.delim('ATAC-seq_data/Zhang_BICCN-H_20190523-20190611_huMOp_Final_Sample_Metadata.txt')
 
 #Give metadata dataframe and cisTopicObject matrix the same row names
-metadata <- data.frame(metadata, row.names = 1)
+metadata <- data.frame(metadataOrig, row.names = 1)
 #Add metadata to cisTopic Object
 cisTopicObject <- addCellMetadata(cisTopicObject, cell.data = metadata)
 ```
@@ -79,7 +79,7 @@ cellTopicAssignments <- cisTopicObject@selected.model$document_expects
 #read from Rds
 #cellTopicAssignments <- readRDS(file.path(pathToOutputsDir,'cellTopicAssignments.Rds'))
 #Convert to dataframe with all info
-cellData <- createCellTopicDataFrame (cellTopicAssignments, dimReductionCoords, metadata)
+cellData <- createCellTopicDataFrame (cellTopicAssignments, dimReductionCoords, metadataOrig)
 
 #Save dataframe
 write_xlsx (cellData, file.path(pathToOutputsDir,'cellData.xlsx'))

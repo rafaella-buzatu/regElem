@@ -31,8 +31,8 @@ metadataOrig <- read.delim('ATAC-seq_data/Zhang_BICCN-H_20190523-20190611_huMOp_
 #metadata = metadata [1:2000, ]
 
 #Give object and dataframe the same row names
-metadata <- data.frame(metadata, row.names = 1)
-#Add metadata to cisTopic Object
+metadata <- data.frame(metadataOrig, row.names = 1)
+#Add metadata to cisTopic Object from the dataframe
 cisTopicObject <- addCellMetadata(cisTopicObject, cell.data = metadata)
 
 #Run models with chosen topic numbers

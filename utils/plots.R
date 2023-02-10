@@ -77,3 +77,13 @@ createtSNEsPerTopic <- function (cellData, pathToPlotsDir){
   }
   dev.off()
 }
+
+plotCNNhistory <- function (cnnHistory, pathToPlotsDir){
+  
+  pdf(file = file.path(pathToPlotsDir, 'lossMetric.pdf'),
+      width = 7,
+      height =10)
+  plot(cnnHistory )
+  
+  dev.off()
+}

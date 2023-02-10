@@ -10,3 +10,5 @@ outputs/cisTopicBigWig/
 outputs/regionScoresPerTopic.Rds
 
 outputs/regionScoresAllTopics.Rds
+
+outputs/regionData.xlsx

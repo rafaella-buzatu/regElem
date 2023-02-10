@@ -1,3 +1,5 @@
+### CISTOPIC
+
 library(BSgenome.Hsapiens.UCSC.hg38)
 
 createRegionDataFrame <- function (regionScoresAllTopics, regionScoresPerTopic, 
@@ -87,6 +89,7 @@ addDNAsequences <- function (regionData){
   setTxtProgressBar(pb, row)
   }
   close(pb)
+  
   return (regionData)
 }
 
@@ -141,3 +144,4 @@ createCellTopicDataFrame <- function (cellTopicAssignments, dimReductionCoords ,
   }
   return (cellData)
 }
+

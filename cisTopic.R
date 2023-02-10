@@ -28,7 +28,7 @@ cisTopicObject <- createcisTopicObject(ATACseqData, project.name='ATACseq_cluste
 
 #Read metadata from fileATAC
 metadataOrig <- read.delim('ATAC-seq_data/Zhang_BICCN-H_20190523-20190611_huMOp_Final_Sample_Metadata.txt')
-#metadata = metadata [1:2000, ]
+#metadataOrig = metadataOrig [1:2000, ]
 
 #Give object and dataframe the same row names
 metadata <- data.frame(metadataOrig, row.names = 1)
@@ -36,7 +36,7 @@ metadata <- data.frame(metadataOrig, row.names = 1)
 cisTopicObject <- addCellMetadata(cisTopicObject, cell.data = metadata)
 
 #Run models with chosen topic numbers
-cisTopicObject <- runWarpLDAModels(cisTopicObject, topic=c(2:15, 20, 25, 35, 40, 45, 50), seed=123, nCores=1, addModels=FALSE)
+cisTopicObject <- runWarpLDAModels(cisTopicObject, topic=c(2, 3, 5, 7, 10, 20, 30, 40, 50), seed=123, nCores=1, addModels=FALSE)
 
 #Select best model
 cisTopicObject <- selectModelModified(cisTopicObject, pathFolder = pathToPlotsDir, type='derivative')

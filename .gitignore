@@ -12,3 +12,9 @@ outputs/regionScoresPerTopic.Rds
 outputs/regionScoresAllTopics.Rds
 
 outputs/regionData.xlsx
+
+outputs/oldOuputs/
+
+outputs/
+
+cisTopic2.R

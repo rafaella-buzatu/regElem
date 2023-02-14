@@ -3,8 +3,10 @@ library (keras)
 library(tensorA)
 library(tensorflow)
 library(ptw)
+source('utils/data.R')
 
-oneHotEncode <- function(dnaSeq, maxLen) {
+
+oneHotEncode <- function(dnaSeq) {
   #'One hot encodes the input dna sequence.
   
   # Construct matrix
@@ -15,8 +17,8 @@ oneHotEncode <- function(dnaSeq, maxLen) {
   #Split DNA sequence
   seqSplit <- unlist(strsplit(x = dnaSeq, split = ""))
   
-  #Create matrix of zeros of size sequence length x 4
-  oneHotMatrix <- matrix(data = rep(0, seqLength*length(nucleotides)), nrow = 4)
+  #Create matrix of zeros of size sequence length 
+  oneHotMatrix <- matrix(data = rep(0), ncol = seqLength, nrow = 4)
   #rename columns and rows with nucleotides
   rownames(oneHotMatrix) <- nucleotides
   colnames(oneHotMatrix) <- seqSplit
@@ -26,8 +28,8 @@ oneHotEncode <- function(dnaSeq, maxLen) {
     oneHotMatrix[rownames(oneHotMatrix) == i, colnames(oneHotMatrix) == i] <- 1
   }
   
-  #Pad to desire length
-  oneHotMatrix <- padzeros(oneHotMatrix, maxLen-ncol(oneHotMatrix), side="right")
+  oneHotMatrix <- t(oneHotMatrix)
+  row.names(oneHotMatrix) <- c(1:dim(oneHotMatrix)[1])
   
   return(oneHotMatrix)
   
@@ -56,8 +58,6 @@ splitTrainTest <- function (listOneHotMatrices, listLabels, testPercentage){
   xTrain = listOneHotMatrices[trainIndex]
   #Reshape into matrix
   xTrain <- array(unlist(xTrain), dim = c(length(xTrain), dim(xTrain[[1]])[1], dim(xTrain[[1]])[2]))
-  #Add channel
-  xTrain <- array_reshape(xTrain, c(dim(xTrain)[1], dim(xTrain)[2], dim(xTrain)[3], 1))
   #Extract corresponding labels into matrix                   
   yTrain = array(unlist(listLabels [trainIndex]), dim = c(length(listLabels [trainIndex]), length(listLabels [trainIndex][[1]])))
   #Save X and Y in list
@@ -67,8 +67,6 @@ splitTrainTest <- function (listOneHotMatrices, listLabels, testPercentage){
   xTest = listOneHotMatrices[testIndex]
   #Reshape into matrix
   xTest <- array(unlist(xTest), dim = c(length(xTest), dim(xTest[[1]])[1], dim(xTest[[1]])[2]))
-  #Add channel
-  xTest <- array_reshape(xTest, c(dim(xTest)[1], dim(xTest)[2], dim(xTest)[3], 1))
   #Extract corresponding labels into matrix                   
   yTest = array(unlist(listLabels [testIndex]), dim = c(length(listLabels [testIndex]), length(listLabels [testIndex][[1]])))
   #Save X and Y in list
@@ -97,7 +95,7 @@ getInputCNN <- function(regionData, testPercentage){
   #Extract inputs and outputs
   for (i in (1:nrow(regionData))){
     #Convert DNA sequences of regions to one hot encoded matrices
-    encodedMatrix = oneHotEncode (unlist(regionData [i, 'DNAseq']), maxLen)
+    encodedMatrix = oneHotEncode (unlist(regionData [i, 'DNAseq']))
     #Add matrix to list
     listOneHotMatrices [[i]] = encodedMatrix
     #Extract values of topic probabilities
@@ -114,26 +112,49 @@ createModel <- function (inputShape, nClasses){
   #' Creates and compiles the convolutional model architecture
   
   cnnModel <- keras_model_sequential() %>%
-    layer_conv_2d(filters = 32, kernel_size = c(3,3), activation = 'relu', input_shape = inputShape) %>% 
-    layer_max_pooling_2d(pool_size = c(2, 2)) %>% 
-    layer_conv_2d(filters = 64, kernel_size = c(3,3), activation = 'relu') %>% 
-    layer_max_pooling_2d(pool_size = c(2, 2)) %>% 
-    layer_dropout(rate = 0.25) %>% 
-    layer_flatten() %>% 
-    layer_dense(units = 500, activation = 'relu') %>% 
-    layer_dropout(rate = 0.5) %>% 
-    layer_dense(units = 100, activation = 'relu') %>% 
-    layer_dropout(rate = 0.5) %>% 
-    layer_dense(units = 50, activation = 'relu') %>% 
-    layer_dropout(rate = 0.5) %>% 
-    layer_dense(units = nClasses, activation = 'softmax')
+    layer_conv_1d(filters=64, kernel_size=12, input_shape = inputShape, activation="relu") %>% 
+    layer_conv_1d(filters=64, kernel_size=12, activation="relu") %>% 
+    layer_max_pooling_1d(pool_size=4) %>%
+    layer_dropout(0.25) %>%
+    layer_conv_1d(filters=32, kernel_size=2, activation="relu") %>%
+    layer_conv_1d(filters=32, kernel_size=12, activation="relu") %>%
+    layer_max_pooling_1d(pool_size=4) %>%
+    layer_dropout(0.25) %>%
+    layer_flatten() %>%
+    layer_dense(500,activation="relu")%>%
+    layer_dropout(0.25)%>%
+    layer_dense(units = nClasses, activation = 'relu')
   
   cnnModel %>% compile(
-    loss = loss_categorical_crossentropy,
+    loss = "mean_squared_error",
     optimizer = optimizer_adadelta(),
-    metrics = c('accuracy')
+    metrics = c("mean_squared_error")
   )
   
   return (cnnModel)
 }
 
+trainModel <-function (xTrain, yTrain, cnnModel, batchSize, epochs, patience,
+                       valSplit, pathToPlotsDir){
+  
+  #Initialize earlyStopping
+  callbacks <- list(callback_early_stopping(monitor = "val_loss", patience = 20,
+                                            restore_best_weights = TRUE, mode = "auto"))
+  
+  #Train model on training set
+  cnnHistory <- cnnModel %>% fit(
+    xTrain, yTrain,
+    batch_size = batchSize,
+    epochs = epochs,
+    callbacks = callbacks,
+    validation_split = valSplit
+  )
+  
+  #Plot evolution of loss function and performance metrics
+  plotCNNhistory(cnnHistory, pathToPlotsDir)
+  
+  #Save model
+  save_model_tf(cnnModel, file.path(pathToOutputsDir,"cnnModel.hdf5"))
+  
+  return (cnnModel)
+}

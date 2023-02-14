@@ -90,11 +90,9 @@ regionScoresPerTopic = cisTopicObject@binarized.cisTopics
 #regionScoresPerTopic = readRDS(file.path(pathToOutputsDir,'regionScoresPerTopic.Rds'))
 
 #Combine information in final dataframe
-regionDataTopics <- createRegionDataFrame (regionScoresAllTopics, regionScoresPerTopic )
+regionData <- createRegionDataFrame (regionScoresAllTopics, regionScoresPerTopic )
 #Subset
-#regionDataTopics <- regionDataTopics [1:2000,]
-#Add DNA sequences for each region
-regionData <- addDNAsequences (regionDataTopics)
+#regionData <- regionData [1:2000,]
 #Save dataframe
 write_xlsx (regionData, file.path(pathToOutputsDir,'regionData.xlsx'))
 #Read df from excel

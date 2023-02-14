@@ -3,6 +3,7 @@ library(writexl)
 library(readxl)
 source('utils/plots.R')
 source('utils/CNNfunctions.R')
+source('utils/data.R')
 
 #Define path to store plots
 pathToPlotsDir = 'plots'
@@ -18,7 +19,19 @@ if (!dir.exists(file.path (pathToOutputsDir))){
 
 #Read input data
 regionData = read_xlsx(file.path(pathToOutputsDir,'regionData.xlsx'))
-regionData = regionData[1:2000,]
+#Subset
+regionData = regionData[1:20000,]
+
+#Subset each region to 500 bases
+regionData<- get500baseWindow (regionData)
+#Add DNA sequences
+regionData <- addDNAsequences(regionData)
+
+#Save dataframe
+write_xlsx (regionData, file.path(pathToOutputsDir,'regionDataCNN.xlsx'))
+#Read df from excel
+#regionData = read_xlsx(file.path(pathToOutputsDir,'regionDataCNN.xlsx'))
+
 #Convert to tensors and split in training, test and validation sets
 inputData = getInputCNN (regionData, testPercentage = 20)
 
@@ -30,25 +43,25 @@ xTest = inputData$test$x
 yTest = inputData$test$y
 
 #Create model
-inputShape <- c(dim(xTrain)[2], dim(xTrain)[3], 1)
+inputShape <- c(dim(xTrain)[2], dim(xTrain)[3])
 nClasses <- dim(yTrain)[2]
 cnnModel <- createModel(inputShape, nClasses)
 
 #Train model
-batchSize <- 128
-epochs <- 50
-
-cnnHistory <- cnnModel %>% fit(
-  xTrain, yTrain,
-  batch_size = batchSize,
-  epochs = epochs,
-  validation_split = 0.2
-)
-
-#Plot evolution of loss function and performance metrics
-plotCNNhistory(cnnHistory, pathToPlotsDir)
+cnnModel = trainModel(xTrain, yTrain,
+                      cnnModel,
+                      batchSize = 128, 
+                      epochs = 100, 
+                      patience = 20,
+                      valSplit = 0.2,
+                      pathToPlotsDir = pathToPlotsDir)
 
 #Evaluate model on test set
 cnnModel %>% evaluate(xTest, yTest)
-#cnnModel$acc
+
+#Load model
+cnnModel <- file.path(pathToOutputsDir,"cnnModel.hdf5")
+
+#Use model for prediction 
+
 

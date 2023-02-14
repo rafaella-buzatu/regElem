@@ -93,6 +93,29 @@ addDNAsequences <- function (regionData){
   return (regionData)
 }
 
+
+get500baseWindow <- function (regionData) {
+  #' Extracts a 500 base window from each region in the input dataframe, where
+  #' the middle is the center of the initial region.
+  
+  pb = txtProgressBar(min = 0, max = nrow(regionData), style = 3, width = 50) 
+  for (row in 1:nrow(regionData)) {
+    
+    if(regionData$width[row] %% 2 == 1) {middle = (regionData$width[row]-1)/2}
+    if(regionData$width[row] %% 2 == 0) {middle = regionData$width[row]/2}
+    
+    newMid = regionData$start[row] + middle
+    regionData$start[row] = newMid - 249
+    regionData$end[row] = newMid + 250
+    regionData$width[row] = regionData$end [row] - regionData$start[row] + 1
+    
+    setTxtProgressBar(pb, row)
+  }
+  close(pb)
+  
+  return (regionData)
+}
+
 createCellTopicDataFrame <- function (cellTopicAssignments, dimReductionCoords , metadata) {
 
   #' Generates a dataframe combining the information about the topic assignment

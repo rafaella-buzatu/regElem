@@ -20,7 +20,7 @@ if (!dir.exists(file.path (pathToOutputsDir))){
 #Read input data
 regionData = read_xlsx(file.path(pathToOutputsDir,'regionData.xlsx'))
 #Subset
-regionData = regionData[1:20000,]
+#regionData = regionData[1:20000,]
 
 #Subset each region to 500 bases
 regionData<- get500baseWindow (regionData)
@@ -59,9 +59,10 @@ cnnModel = trainModel(xTrain, yTrain,
 #Evaluate model on test set
 cnnModel %>% evaluate(xTest, yTest)
 
+#Save model
+save_model_hdf5(cnnModel, file.path(pathToOutputsDir,"cnnModel.hdf5"))
+
 #Load model
-cnnModel <- file.path(pathToOutputsDir,"cnnModel.hdf5")
-
+cnnModel <- load_model__hdf5(file.path(pathToOutputsDir,"cnnModel.hdf5"))
 #Use model for prediction 
-
 

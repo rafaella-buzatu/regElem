@@ -3,6 +3,8 @@ library (keras)
 library(tensorA)
 library(tensorflow)
 library(ptw)
+library(writexl)
+
 source('utils/data.R')
 
 
@@ -52,23 +54,37 @@ splitTrainTest <- function (listOneHotMatrices, listLabels, testPercentage){
   #Get indices of training + val set
   trainIndex = allIndex[!(allIndex %in% testIndex)]
   
-  
+ 
   #EXTRACT ACTUAL VALUES
-  #Extract training set into list
-  xTrain = listOneHotMatrices[trainIndex]
-  #Reshape into matrix
-  xTrain <- array(unlist(xTrain), dim = c(length(xTrain), dim(xTrain[[1]])[1], dim(xTrain[[1]])[2]))
-  #Extract corresponding labels into matrix                   
-  yTrain = array(unlist(listLabels [trainIndex]), dim = c(length(listLabels [trainIndex]), length(listLabels [trainIndex][[1]])))
+  
+  #Extract training set X in a matrix
+  xTrain <-  array(numeric(),c(length(listOneHotMatrices[trainIndex]), dim(listOneHotMatrices[[1]])[1], dim(listOneHotMatrices[[1]])[2]))
+  listTraining <- listOneHotMatrices[trainIndex]
+  for (i in 1: length(listTraining)){
+    xTrain [i,  , ] = listTraining [[i]]
+  }
+  #Extract training set labels in a matrix   
+  yTrain <- array(numeric(), c(length(listLabels [trainIndex]), length(listLabels[[1]])))
+  listTrainingLabels <- listLabels[trainIndex]
+  for (i in 1: length(listTrainingLabels)){
+    yTrain [i, ] = listTrainingLabels [[i]]
+  }
   #Save X and Y in list
   trainSet = list (x = as.tensor(xTrain), y = as.tensor(yTrain))
   
-  #Extract test set into list
-  xTest = listOneHotMatrices[testIndex]
-  #Reshape into matrix
-  xTest <- array(unlist(xTest), dim = c(length(xTest), dim(xTest[[1]])[1], dim(xTest[[1]])[2]))
-  #Extract corresponding labels into matrix                   
-  yTest = array(unlist(listLabels [testIndex]), dim = c(length(listLabels [testIndex]), length(listLabels [testIndex][[1]])))
+  
+  #Extract test set X in a matrix
+  xTest <-  array(numeric(),c(length(listOneHotMatrices[testIndex]), dim(listOneHotMatrices[[1]])[1], dim(listOneHotMatrices[[1]])[2]))
+  listTest <- listOneHotMatrices[testIndex]
+  for (i in 1: length(listTest)){
+    xTest [i,  , ] = listTest [[i]]
+  }
+  #Extract training set labels in a matrix   
+  yTest <- array(numeric(), c(length(listLabels [testIndex]), length(listLabels[[1]])))
+  listTestLabels <- listLabels[testIndex]
+  for (i in 1: length(listTestLabels)){
+    yTest [i, ] = listTestLabels [[i]]
+  }
   #Save X and Y in list
   testSet = list (x = as.tensor(xTest), y = as.tensor (yTest))
   
@@ -89,9 +105,10 @@ getInputCNN <- function(regionData, testPercentage){
   
   #Get names of columns containing topic probabilities
   topicColNames = colnames(regionData[ , grepl( "Topic" , names( regionData))])
-  #Get max sequence length 
-  maxLen = max(nchar(regionData$DNAseq))
   
+  print ('Encoding DNA sequences...')
+  #Initialize progress bar
+  pb = txtProgressBar(min = 0, max = nrow(regionData), style = 3, width = 50) 
   #Extract inputs and outputs
   for (i in (1:nrow(regionData))){
     #Convert DNA sequences of regions to one hot encoded matrices
@@ -99,9 +116,14 @@ getInputCNN <- function(regionData, testPercentage){
     #Add matrix to list
     listOneHotMatrices [[i]] = encodedMatrix
     #Extract values of topic probabilities
-    listLabels[[i]] = regionData[i, topicColNames]
+    listLabels[[i]] = unlist(regionData[i, topicColNames])
+    
+    #Update progress bar
+    setTxtProgressBar(pb, i)
   }
+  close(pb)
   
+  print ('Splitting into training and test set...')
   #Split into training, test sets
   inputDataset = splitTrainTest(listOneHotMatrices, listLabels, testPercentage)
   
@@ -151,10 +173,32 @@ trainModel <-function (xTrain, yTrain, cnnModel, batchSize, epochs, patience,
   )
   
   #Plot evolution of loss function and performance metrics
-  plotCNNhistory(cnnHistory, pathToPlotsDir)
+  pdf(file = file.path(pathToPlotsDir, 'lossMetric.pdf'),
+      width = 7,
+      height =10)
+  plot(cnnHistory )
+  dev.off()
   
   #Save model
   save_model_tf(cnnModel, file.path(pathToOutputsDir,"cnnModel.hdf5"))
   
   return (cnnModel)
+}
+
+getPredictions <- function (cnnModel, xTest, pathToOutputDir){
+  #Extract predictions
+  yPred <- as.data.frame(predict(cnnModel, xTest))
+  
+  #Get no of topics
+  topicNo = dim(yPred)[2]
+  #Rename columns
+  columns = c()
+  for (i in 1:topicNo){
+    columns = append (columns,  paste(c('Topic', i), collapse = ""))
+  }
+  colnames (yPred) <- columns
+  
+  write_xlsx (yPred, file.path(pathToOutputsDir,'TopicPredictions.xlsx'))
+  
+  return (yPred)
 }

@@ -6,15 +6,14 @@ source('utils/altered_functions.R')
 source('utils/data.R')
 source('utils/plots.R')
 
-
 #Define path to store plots
-pathToPlotsDir = 'plots'
+pathToPlotsDir = 'plots/cisTopic/run3'
 if (!dir.exists(file.path (pathToPlotsDir))){
   dir.create(file.path (pathToPlotsDir))
 }
 
 #Define path to store outputs
-pathToOutputsDir = 'outputs'
+pathToOutputsDir = 'outputs/cisTopic/run3'
 if (!dir.exists(file.path (pathToOutputsDir))){
   dir.create(file.path (pathToOutputsDir))
 }
@@ -36,7 +35,12 @@ metadata <- data.frame(metadataOrig, row.names = 1)
 cisTopicObject <- addCellMetadata(cisTopicObject, cell.data = metadata)
 
 #Run models with chosen topic numbers
-cisTopicObject <- runWarpLDAModels(cisTopicObject, topic=c(2, 3, 5, 7, 10, 20, 30, 40, 50), seed=123, nCores=1, addModels=FALSE)
+#Run1
+#cisTopicObject <- runWarpLDAModels(cisTopicObject, topic=c(2, 3, 5, 7, 10, 20, 30, 40, 50), seed=123, nCores=1, addModels=FALSE)
+#Run2
+#cisTopicObject <- runWarpLDAModels(cisTopicObject, topic=c(2:10), seed=123, nCores=1, addModels=FALSE)
+#Run3
+cisTopicObject <- runWarpLDAModels(cisTopicObject, topic=c(5, 9, 10:20), seed=123, nCores=1, addModels=FALSE)
 
 #Select best model
 cisTopicObject <- selectModelModified(cisTopicObject, pathFolder = pathToPlotsDir, type='derivative')

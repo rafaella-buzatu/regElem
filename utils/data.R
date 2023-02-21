@@ -168,3 +168,77 @@ createCellTopicDataFrame <- function (cellTopicAssignments, dimReductionCoords ,
   return (cellData)
 }
 
+getCellTypePerRegion  <- function (ATACseqData, metadata) {
+  #' Generates a dataframe with ATAC-seq read counts per cell Type for each DNA region.
+  
+  #Create empty dataframe with the corresponding columns to specify the location
+  #of each region, followed by the number of reads in each type of cell
+  columns = c ('seqnames', 'start', 'end', 'width')
+  columns = append(columns, unique( unlist(metadata['level1'])))
+  cellTypePerRegion = data.frame(matrix(nrow = nrow(ATACseqData), ncol = length(columns))) 
+  colnames(cellTypePerRegion) = columns
+  
+  #Fill with zeros
+  cellTypePerRegion[is.na(cellTypePerRegion)] <- 0
+  
+  pb = txtProgressBar(min = 0, max = nrow(ATACseqData), style = 3, width = 50) 
+  for (row in 1:nrow(ATACseqData)){
+    
+    #Add location information to corresponding columns
+    location = row.names(ATACseqData)[row]
+    cellTypePerRegion [row, 'seqnames'] = strsplit(location, ":")[[1]][1]
+    cellTypePerRegion [row, 'start'] = as.numeric(strsplit(strsplit(location, ":")[[1]][2], '-')[[1]][1])
+    cellTypePerRegion [row, 'end'] = as.numeric(strsplit(strsplit(location, ":")[[1]][2], '-')[[1]][2])
+    cellTypePerRegion [row, 'width'] = cellTypePerRegion[row, 'end'] - cellTypePerRegion [ row,'start'] +1
+    
+    #Iterate over all samples
+    for (col in 1:ncol(ATACseqData)){
+      #If there are reads
+      if (ATACseqData[row, col] >0 ){
+        #Add the number of reads to the corresponding cell type columns
+        type = metadata['level1'][metadata['sample_name'] == colnames (ATACseqData)[col]]
+        cellTypePerRegion [row, type] = cellTypePerRegion [row, type] + ATACseqData[row, col]
+      }
+    }
+    setTxtProgressBar(pb, row)
+  }
+  close(pb)
+  
+  return (cellTypePerRegion)
+}
+
+transformReadCountsToLog <- function (cellTypesPerRegion, metadata){
+  
+  ### Get number of cells per type
+  #Get names of cell types
+  cellTypes =  unlist(unique( metadata['level1']))
+  
+  
+  #Create empty list to store counts
+  numberCellsPerType = vector(mode = "list", length = (length(cellTypes)))
+  #Add counts to list
+  for (type in 1: length(cellTypes)){
+    numberCellsPerType [[type]] = nrow(subset(metadata, level1 == cellTypes[[type]]))
+  }
+  names(numberCellsPerType) = cellTypes
+  
+  #Get mean of cell numbers
+  meanCells <- mean(unlist(numberCellsPerType))
+  
+  numberCellsPerTypeWeight = vector(mode = "list", length = (length(cellTypes)))
+  #Get weight of each cell type
+  for (i in 1: length(numberCellsPerType)){
+    numberCellsPerTypeWeight [[i]] = numberCellsPerType[[i]]/meanCells
+  }
+  names(numberCellsPerTypeWeight) = cellTypes
+  
+  #Iterate over every row in the input dataframe
+  for (row in 1:nrow (cellTypesPerRegion)) {
+    #Normalize coutns using weight
+    for (type in cellTypes){
+    cellTypesPerRegion[row, type] = log(cellTypesPerRegion[row, type]/unlist(numberCellsPerTypeWeight[type]) +1)
+    }
+  }
+  
+  return (cellTypesPerRegion)
+}

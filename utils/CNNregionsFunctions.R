@@ -37,24 +37,35 @@ oneHotEncode <- function(dnaSeq) {
   
 }
 
+getTrainTestIndicesFromChr <-function (chromosomesTest, regionData){
+  
+  testIndex = which (regionData$seqnames %in% chromosomesTest)
+  trainIndex = which (!(regionData$seqnames %in% chromosomesTest))
+  
+  indicesSplit = list (trainIndex = trainIndex, testIndex = testIndex)
+  
+  return (indicesSplit)
+}
 
-splitTrainTest <- function (listOneHotMatrices, listLabels, testPercentage){
+splitTrainTest <- function (listOneHotMatrices, listLabels, testPercentage,
+                            trainIndex = NULL, testIndex = NULL){
   #' Split the input list of matrices into training and test sets
   
-  ### SPLIT INDICES
-  #Get indices of input dataset
-  allIndex = c((1:length(listOneHotMatrices)))
+  if (is.null(trainIndex) & is.null(testIndex)){
+    ### SPLIT INDICES
+    #Get indices of input dataset
+    allIndex = c((1:length(listOneHotMatrices)))
+    
+    #SPLIT TEST-TRAIN
+    #Get number of records of test set
+    noTest = as.integer(testPercentage/100*length(listOneHotMatrices))
+    #Randomly sample indices of test set
+    set.seed(15)
+    testIndex = sample(allIndex, noTest )
+    #Get indices of training + val set
+    trainIndex = allIndex[!(allIndex %in% testIndex)]
+  }
   
-  #SPLIT TEST-TRAIN
-  #Get number of records of test set
-  noTest = as.integer(testPercentage/100*length(listOneHotMatrices))
-  #Randomly sample indices of test set
-  set.seed(15)
-  testIndex = sample(allIndex, noTest )
-  #Get indices of training + val set
-  trainIndex = allIndex[!(allIndex %in% testIndex)]
-  
- 
   #EXTRACT ACTUAL VALUES
   
   #Extract training set X in a matrix
@@ -96,7 +107,8 @@ splitTrainTest <- function (listOneHotMatrices, listLabels, testPercentage){
 }
 
 
-getInputCNN <- function(regionData, testPercentage){
+getInputCNN <- function(regionData, testPercentage, trainIndex = NULL,
+                        testIndex = NULL){
   #' Formats the input dataframe into input data for the CNN
   
   #Define empty lists to save the inputs
@@ -125,7 +137,8 @@ getInputCNN <- function(regionData, testPercentage){
   
   print ('Splitting into training and test set...')
   #Split into training, test sets
-  inputDataset = splitTrainTest(listOneHotMatrices, listLabels, testPercentage)
+  inputDataset = splitTrainTest(listOneHotMatrices, listLabels, testPercentage,
+                                trainIndex, testIndex)
   
   return (inputDataset)
 }

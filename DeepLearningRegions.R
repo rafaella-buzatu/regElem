@@ -2,17 +2,17 @@ library(keras)
 library(writexl)
 library(readxl)
 source('utils/plots.R')
-source('utils/CNNfunctions.R')
+source('utils/CNNregionsFunctions.R')
 source('utils/data.R')
 
 #Define path to store plots
-pathToPlotsDir = 'plots'
+pathToPlotsDir = 'plots/topicPrediction'
 if (!dir.exists(file.path (pathToPlotsDir))){
   dir.create(file.path (pathToPlotsDir))
 }
 
 #Define path to store outputs
-pathToOutputsDir = 'outputs'
+pathToOutputsDir = 'outputs/topicPrediction'
 if (!dir.exists(file.path (pathToOutputsDir))){
   dir.create(file.path (pathToOutputsDir))
 }
@@ -32,8 +32,17 @@ write_xlsx (regionData, file.path(pathToOutputsDir,'regionDataCNN.xlsx'))
 #Subset
 #regionData = regionData[1:20000,]
 
+#Get indices for test and train sets
+chromosomesTest = c('chr9', 'chr8', 'chr13', 'chr14')
+indicesSplit = getTrainTestIndicesFromChr (chromosomesTest, regionData)
+trainIndex = indicesSplit$trainIndex
+testIndex = indicesSplit$testIndex
+
 #Convert to tensors and split in training, test and validation sets
-inputData = getInputCNN (regionData, testPercentage = 20)
+inputData = getInputCNN (regionData, 
+                         testPercentage = 20,
+                         trainIndex = trainIndex,
+                         testIndex = testIndex)
 
 #Extract train set
 xTrain = inputData$train$x

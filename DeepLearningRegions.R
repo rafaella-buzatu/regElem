@@ -18,7 +18,7 @@ if (!dir.exists(file.path (pathToOutputsDir))){
 }
 
 #Read input data
-regionData = read_xlsx(file.path(pathToOutputsDir,'regionData.xlsx'))
+regionData = read_xlsx(file.path('outputs', 'cisTopic','run3', 'regionData.xlsx'))
 
 #Subset each region to 500 bases
 regionData<- get500baseWindow (regionData)
@@ -76,6 +76,10 @@ yPred <- getPredictions (cnnModel, xTest, pathToOutputsDir)
 
 #Save model
 save_model_hdf5(cnnModel, file.path(pathToOutputsDir,"cnnModel.hdf5"))
+print (summary(cnnModel))
 
+#Plot the predictions vs true values
+yPred <- read_xlsx(file.path(pathToOutputsDir,'TopicPredictions.xlsx'))
+yTest<- regionData [testIndex, ]
 
-
+plotPredictedvsTrue (yPred, yTest, pathToPlotsDir)

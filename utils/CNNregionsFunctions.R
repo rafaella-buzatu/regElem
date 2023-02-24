@@ -189,7 +189,8 @@ trainModel <-function (xTrain, yTrain, cnnModel, batchSize, epochs, patience,
   pdf(file = file.path(pathToPlotsDir, 'lossMetric.pdf'),
       width = 7,
       height =10)
-  plot(cnnHistory )
+  p<- plot(cnnHistory )
+  print (p)
   dev.off()
   
   #Save model

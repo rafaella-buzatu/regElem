@@ -90,3 +90,20 @@ createtSNEsPerTopic <- function (cellData, pathToPlotsDir){
   }
   dev.off()
 }
+
+plotPredictedvsTrue <- function (yPred, yTrue, pathToPlotsDir){
+  #' Generates scatter plots for predicted vs True Values for each variable.
+  
+  predictedValues = colnames(yPred)
+
+  pdf(file.path(pathToPlotsDir, 'Predictions.pdf'))
+  
+  for (i in  predictedValues){
+    p <- ggplot() +
+      geom_point(data = data.frame(x = unlist(yPred[i]), y = unlist(yTest[i])), aes(x = x, y = y))+
+      ggtitle(i) +  xlab("Predicted score") + ylab("True score")
+    print (p)
+  }
+  dev.off()
+
+}

@@ -36,6 +36,7 @@ cellTypesPerRegion <- addDNAsequences(cellTypesPerRegion)
 
 #Save dataframe
 write_xlsx (cellTypesPerRegion, file.path(pathToOutputsDir,'cellTypesPeRegionCNN.xlsx'))
+#cellTypesPerRegion= read_xlsx(file.path(pathToOutputsDir,'cellTypesPeRegionCNN.xlsx'))
 
 #Get indices for test and train sets
 chromosomesTest = c('chr9', 'chr8', 'chr13', 'chr14')
@@ -65,8 +66,8 @@ cnnModel <- createModel(inputShape, nClasses)
 cnnModel = trainModel(xTrain, yTrain,
                       cnnModel,
                       batchSize = 128, 
-                      epochs = 30, 
-                      patience = 10,
+                      epochs = 100, 
+                      patience = 20,
                       valSplit = 0.2,
                       pathToPlotsDir = pathToPlotsDir)
 
@@ -77,7 +78,8 @@ cnnModel = trainModel(xTrain, yTrain,
 cnnModel %>% evaluate(xTest, yTest)
 
 #Get predictions
-yPred <- getPredictions (cnnModel, xTest, pathToOutputsDir)
+listCellTypes <- colnames(cellTypesPerRegion[, 5:(ncol(cellTypesPerRegion)-1)])
+yPred <- getPredictions (cnnModel, xTest, listCellTypes,pathToOutputsDir)
 
 #Save model
 save_model_hdf5(cnnModel, file.path(pathToOutputsDir,"cnnModel.hdf5"))
@@ -87,4 +89,4 @@ print (summary(cnnModel))
 yPred <- read_xlsx(file.path(pathToOutputsDir,'CellTypePredictions.xlsx'))
 yTest<- cellTypesPerRegion [testIndex, ]
 
-plotPredictedvsTrue (yPred, yTest, pathToPlotsDir)
+plotPredictedvsTrue (yPred, yTest,  pathToPlotsDir)

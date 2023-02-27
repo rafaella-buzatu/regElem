@@ -174,12 +174,14 @@ getCellTypePerRegion  <- function (ATACseqData, metadata) {
   #Create empty dataframe with the corresponding columns to specify the location
   #of each region, followed by the number of reads in each type of cell
   columns = c ('seqnames', 'start', 'end', 'width')
-  columns = append(columns, unique( unlist(metadata['level1'])))
+  cellTypes = unique( unlist(metadata['level1']))
+  columns = append(columns, cellTypes)
   cellTypePerRegion = data.frame(matrix(nrow = nrow(ATACseqData), ncol = length(columns))) 
   colnames(cellTypePerRegion) = columns
   
   #Fill with zeros
   cellTypePerRegion[is.na(cellTypePerRegion)] <- 0
+  
   
   pb = txtProgressBar(min = 0, max = nrow(ATACseqData), style = 3, width = 50) 
   for (row in 1:nrow(ATACseqData)){
@@ -190,19 +192,22 @@ getCellTypePerRegion  <- function (ATACseqData, metadata) {
     cellTypePerRegion [row, 'start'] = as.numeric(strsplit(strsplit(location, ":")[[1]][2], '-')[[1]][1])
     cellTypePerRegion [row, 'end'] = as.numeric(strsplit(strsplit(location, ":")[[1]][2], '-')[[1]][2])
     cellTypePerRegion [row, 'width'] = cellTypePerRegion[row, 'end'] - cellTypePerRegion [ row,'start'] +1
-    
-    #Iterate over all samples
-    for (col in 1:ncol(ATACseqData)){
-      #If there are reads
-      if (ATACseqData[row, col] >0 ){
-        #Add the number of reads to the corresponding cell type columns
-        type = metadata['level1'][metadata['sample_name'] == colnames (ATACseqData)[col]]
-        cellTypePerRegion [row, type] = cellTypePerRegion [row, type] + ATACseqData[row, col]
-      }
-    }
-    setTxtProgressBar(pb, row)
+  
+    setTxtProgressBar(pb, row) 
   }
   close(pb)
+ 
+  #Add peak counts per cell type
+   for (cellType in cellTypes) {
+    #Get index for columns of a given type
+    cellsOfAType = metadata[metadata$level1 == cellType, 'sample_name']
+    cellTypeSums = rowSums(ATACseqData [, cellsOfAType])
+    cellTypePerRegion [, cellType] = cellTypeSums
+    
+  }
+  
+  #Remove chromosomes X and Y
+  cellTypePerRegion <- subset (cellTypePerRegion, cellTypePerRegion$seqnames!= 'chrX' & cellTypePerRegion$seqnames!= 'chrY')
   
   return (cellTypePerRegion)
 }

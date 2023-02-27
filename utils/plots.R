@@ -1,4 +1,5 @@
 library(ggplot2)
+library(ggtext)
 library(RColorBrewer)
 
 createUMAPsPerTopic <- function (cellData, pathToPlotsDir){
@@ -99,9 +100,11 @@ plotPredictedvsTrue <- function (yPred, yTrue, pathToPlotsDir){
   pdf(file.path(pathToPlotsDir, 'Predictions.pdf'))
   
   for (i in  predictedValues){
+    corr <- cor.test(unlist(yPred[i]), unlist(yTest[i]), method=c("pearson"))
     p <- ggplot() +
       geom_point(data = data.frame(x = unlist(yPred[i]), y = unlist(yTest[i])), aes(x = x, y = y))+
-      ggtitle(i) +  xlab("Predicted score") + ylab("True score")
+      ggtitle(i) +  xlab("Predicted score") + ylab("True score")+
+      annotate( geom='richtext', label = paste ("correlation", round(corr$estimate, 2)), x= -Inf, y= Inf,  hjust = -0.5, vjust = 1.25)  
     print (p)
   }
   dev.off()

@@ -20,6 +20,9 @@ if (!dir.exists(file.path (pathToOutputsDir))){
 #Read input data
 regionData = read_xlsx(file.path('outputs', 'cisTopic','run3', 'regionData.xlsx'))
 
+#Remove chromosomes X and Y
+#regionData <- subset (regionData, regionData$seqnames!= 'chrX' & regionData!= 'chrY')
+
 #Subset each region to 500 bases
 regionData<- get500baseWindow (regionData)
 #Add DNA sequences

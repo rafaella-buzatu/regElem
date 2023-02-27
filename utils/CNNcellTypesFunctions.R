@@ -39,8 +39,8 @@ oneHotEncode <- function(dnaSeq) {
 
 getTrainTestIndicesFromChr <-function (chromosomesTest, cellTypesPerRegion){
   
-  testIndex = which (regionData$seqnames %in% chromosomesTest)
-  trainIndex = which (!(regionData$seqnames %in% chromosomesTest))
+  testIndex = which (cellTypesPerRegion$seqnames %in% chromosomesTest)
+  trainIndex = which (!(cellTypesPerRegion$seqnames %in% chromosomesTest))
   
   
   indicesSplit = list (trainIndex = trainIndex, testIndex = testIndex)
@@ -114,7 +114,7 @@ getInputCNN <- function(cellTypesPerRegion, testPercentage, trainIndex = NULL,
   
   #Define empty lists to save the inputs
   listOneHotMatrices <- vector(mode = "list", length = (nrow(cellTypesPerRegion)))
-  listOuputs <- vector (mode = "list", length = nrow(cellTypesPerRegion))
+  listOutputs <- vector (mode = "list", length = nrow(cellTypesPerRegion))
   
   #Get names of columns containing cell type counts 
   cellTypeColNames = colnames(cellTypesPerRegion[, 5:(ncol(cellTypesPerRegion)-1)])
@@ -129,7 +129,7 @@ getInputCNN <- function(cellTypesPerRegion, testPercentage, trainIndex = NULL,
     #Add matrix to list
     listOneHotMatrices [[i]] = encodedMatrix
     #Extract normalized reads per type
-    listOuputs[[i]] = unlist(cellTypesPerRegion[i,  cellTypeColNames])
+    listOutputs[[i]] = unlist(cellTypesPerRegion[i,  cellTypeColNames])
     
     #Update progress bar
     setTxtProgressBar(pb, i)
@@ -157,7 +157,9 @@ createModel <- function (inputShape, nClasses){
     layer_max_pooling_1d(pool_size=4) %>%
     layer_dropout(0.25) %>%
     layer_flatten() %>%
-    layer_dense(20,activation="relu")%>%
+    layer_dense(200,activation="relu")%>%
+    layer_dropout(0.25)%>%
+    layer_dense(50,activation="relu")%>%
     layer_dropout(0.25)%>%
     layer_dense(units = nClasses, activation = 'relu')
   
@@ -200,20 +202,13 @@ trainModel <-function (xTrain, yTrain, cnnModel, batchSize, epochs, patience,
   return (cnnModel)
 }
 
-getPredictions <- function (cnnModel, xTest, pathToOutputDir){
+getPredictions <- function (cnnModel, xTest, listCellTypes, pathToOutputDir){
   #Extract predictions
   yPred <- as.data.frame(predict(cnnModel, xTest))
+
+  colnames (yPred) <- listCellTypes
   
-  #Get no of topics
-  topicNo = dim(yPred)[2]
-  #Rename columns
-  columns = c()
-  for (i in 1:topicNo){
-    columns = append (columns,  paste(c('Topic', i), collapse = ""))
-  }
-  colnames (yPred) <- columns
-  
-  write_xlsx (yPred, file.path(pathToOutputsDir,'TopicPredictions.xlsx'))
+  write_xlsx (yPred, file.path(pathToOutputsDir,'CellTypePredictions.xlsx'))
   
   return (yPred)
 }

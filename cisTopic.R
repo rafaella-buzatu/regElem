@@ -19,14 +19,14 @@ if (!dir.exists(file.path (pathToOutputsDir))){
 }
 
 #Load ATACseq data
-ATACseqData = readRDS('ATAC-seq_data/Zhang_BICCN-H_20190523-20190611_huMOp_Final_AC_Peaks.RDS')
+ATACseqData = readRDS('data/SNAREseqData/Zhang_BICCN-H_20190523-20190611_huMOp_Final_AC_Peaks.RDS')
 #ATACseqData = ATACseqData[, 1:2000]
 
 #Transform matrix into cisTopic object
 cisTopicObject <- createcisTopicObject(ATACseqData, project.name='ATACseq_clustering')
 
 #Read metadata from fileATAC
-metadataOrig <- read.delim('ATAC-seq_data/Zhang_BICCN-H_20190523-20190611_huMOp_Final_Sample_Metadata.txt')
+metadataOrig <- read.delim('data/SNAREseqData/Zhang_BICCN-H_20190523-20190611_huMOp_Final_Sample_Metadata.txt')
 #metadataOrig = metadataOrig [1:2000, ]
 
 #Give object and dataframe the same row names

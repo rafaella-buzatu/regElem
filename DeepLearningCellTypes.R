@@ -19,8 +19,8 @@ if (!dir.exists(file.path (pathToOutputsDir))){
 
 ###    GET INPUT
 #Read input files
-ATACseqData <- readRDS('ATAC-seq_data/Zhang_BICCN-H_20190523-20190611_huMOp_Final_AC_Peaks.RDS')
-metadata <- read.delim('ATAC-seq_data/Zhang_BICCN-H_20190523-20190611_huMOp_Final_Sample_Metadata.txt')
+ATACseqData <- readRDS('data/SNAREseqData/Zhang_BICCN-H_20190523-20190611_huMOp_Final_AC_Peaks.RDS')
+metadata <- read.delim('data/SNAREseqData/Zhang_BICCN-H_20190523-20190611_huMOp_Final_Sample_Metadata.txt')
 
 #Create dataframe with read counts per type of cell for each region
 cellTypesPerRegion <- getCellTypePerRegion (ATACseqData, metadata)

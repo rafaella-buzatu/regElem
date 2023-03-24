@@ -8,6 +8,88 @@ library(writexl)
 source('utils/data.R')
 
 
+transformReadCountsToLog <- function (cellTypesPerRegion, metadata){
+  
+  ### Get number of cells per type
+  #Get names of cell types
+  cellTypes =  unlist(unique( metadata['level1']))
+  
+  
+  #Create empty list to store counts
+  numberCellsPerType = vector(mode = "list", length = (length(cellTypes)))
+  #Add counts to list
+  for (type in 1: length(cellTypes)){
+    numberCellsPerType [[type]] = nrow(subset(metadata, level1 == cellTypes[[type]]))
+  }
+  names(numberCellsPerType) = cellTypes
+  
+  #Get mean of cell numbers
+  meanCells <- mean(unlist(numberCellsPerType))
+  
+  numberCellsPerTypeWeight = vector(mode = "list", length = (length(cellTypes)))
+  #Get weight of each cell type
+  for (i in 1: length(numberCellsPerType)){
+    numberCellsPerTypeWeight [[i]] = numberCellsPerType[[i]]/meanCells
+  }
+  names(numberCellsPerTypeWeight) = cellTypes
+  
+  #Initialize progress bar
+  pb = txtProgressBar(min = 0, max = nrow(cellTypesPerRegion), style = 3, width = 50) 
+  #Iterate over every row in the input dataframe
+  for (row in 1:nrow (cellTypesPerRegion)) {
+    #Normalize coutns using weight
+    for (type in cellTypes){
+      cellTypesPerRegion[row, type] = log(cellTypesPerRegion[row, type]/unlist(numberCellsPerTypeWeight[type]) +1)
+    }
+    #Update progress bar
+    setTxtProgressBar(pb, row) 
+  }
+  close (pb)
+  
+  return (cellTypesPerRegion)
+}
+
+
+transformReadCountsToPercentages <- function (cellTypesPerRegion, metadata){
+  
+  #Get names of cell types
+  cellTypes =  unlist(unique( metadata['level1']))
+  
+  #Initialize progress bar
+  pb = txtProgressBar(min = 0, max = nrow(cellTypesPerRegion), style = 3, width = 50) 
+  #Extract inputs and outputs
+  #Iterate over every row in the input dataframe
+  for (row in 1:nrow (cellTypesPerRegion)) {
+    totalReads = sum (cellTypesPerRegion [row, cellTypes])
+    for (type in cellTypes){
+      cellTypesPerRegion[row, type] = cellTypesPerRegion[row, type] /totalReads 
+    }
+    #Update progress bar
+    setTxtProgressBar(pb, row) 
+  }
+  close (pb)
+  
+  return (cellTypesPerRegion)
+}
+
+
+
+binarizeCellTypeScore <- function (cellTypesPerRegion, thresholdMetric = NULL, thresholdNumeric = NULL) {
+  
+  for (i in 5:7) {
+    if (!is.null(thresholdMetric)){
+      threshold = summary (unlist(cellTypesPerRegion [, i]))[thresholdMetric]
+    }
+    else if (!is.null(thresholdNumeric)) {
+      threshold = thresholdNumeric
+    }
+    cellTypesPerRegion [which (cellTypesPerRegion [, i] <= threshold), i] = 0
+    cellTypesPerRegion [which (cellTypesPerRegion [, i] >   threshold), i] = 1
+  }
+  
+  return (cellTypesPerRegion)
+}
+
 oneHotEncode <- function(dnaSeq) {
   #'One hot encodes the input dna sequence.
   
@@ -144,7 +226,35 @@ getInputCNN <- function(cellTypesPerRegion, testPercentage, trainIndex = NULL,
   return (inputDataset)
 }
   
-createModel <- function (inputShape, nClasses){
+createModelRegression <- function (inputShape, nClasses){
+  #' Creates and compiles the convolutional model architecture
+  
+  cnnModel <- keras_model_sequential() %>%
+    layer_conv_1d(filters=64, kernel_size=12, input_shape = inputShape, activation="relu") %>% 
+    layer_conv_1d(filters=64, kernel_size=12, activation="relu") %>% 
+    layer_max_pooling_1d(pool_size=4) %>%
+    layer_dropout(0.25) %>%
+    layer_conv_1d(filters=32, kernel_size=2, activation="relu") %>%
+    layer_conv_1d(filters=32, kernel_size=12, activation="relu") %>%
+    layer_max_pooling_1d(pool_size=4) %>%
+    layer_dropout(0.25) %>%
+    layer_flatten() %>%
+    #layer_dense(200,activation="relu")%>%
+    #layer_dropout(0.25)%>%
+    #layer_dense(50,activation="relu")%>%
+    #layer_dropout(0.25)%>%
+    layer_dense(units = nClasses, activation = 'relu')
+  
+  cnnModel %>% compile(
+    loss = "mean_squared_error",
+    optimizer = optimizer_adadelta()
+  )
+  
+  return (cnnModel)
+}
+
+
+createModelMultiLabelClassification <- function (inputShape, nClasses){
   #' Creates and compiles the convolutional model architecture
   
   cnnModel <- keras_model_sequential() %>%
@@ -161,13 +271,12 @@ createModel <- function (inputShape, nClasses){
     layer_dropout(0.25)%>%
     layer_dense(50,activation="relu")%>%
     layer_dropout(0.25)%>%
-    layer_dense(units = nClasses, activation = 'relu')
+    layer_dense(units = nClasses, activation = 'sigmoid')
   
   cnnModel %>% compile(
-    loss = "mean_squared_error",
-    optimizer = optimizer_adadelta(),
-    metrics = c("mean_squared_error")
-  )
+    loss = 'binary_crossentropy',
+    optimizer = optimizer_adadelta())
+
   
   return (cnnModel)
 }
@@ -202,13 +311,21 @@ trainModel <-function (xTrain, yTrain, cnnModel, batchSize, epochs, patience,
   return (cnnModel)
 }
 
-getPredictions <- function (cnnModel, xTest, listCellTypes, pathToOutputDir){
+getPredictions <- function (cnnModel, xTest, listCellTypes, pathToOutputDir, binary = FALSE){
   #Extract predictions
   yPred <- as.data.frame(predict(cnnModel, xTest))
-
+  
+  if (binary == TRUE) {
+    for (i in 1:ncol(yPred)){
+      yPred [which (yPred[, i] > 0.5), i] = 1
+      yPred [which (yPred[, i] < 0.5), i] = 0
+    }
+  }
+  
   colnames (yPred) <- listCellTypes
   
   write_xlsx (yPred, file.path(pathToOutputsDir,'CellTypePredictions.xlsx'))
   
   return (yPred)
 }
+

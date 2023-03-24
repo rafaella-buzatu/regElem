@@ -104,7 +104,7 @@ GSEA = function(gene_go_mtx, pvals){
   colnames(gsea) = c('GO_term','p', 'coef', 'p.adj')
   gsea[,1] = colnames(gene_go_mtx)
   for (i in 1:ncol(gene_go_mtx)) {
-    res = lm(-log10(pvals) ~ gene_go_mtx[,i]  )
+    res = lm(pvals ~ gene_go_mtx[,i]  )
     gsea[i,"p"] = coef(summary(res))[2,4] #res$prob[2]
     gsea[i,"coef"] = coef(summary(res))[2,1] #res$coefficients[2]
   }

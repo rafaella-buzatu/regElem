@@ -94,8 +94,8 @@ addDNAsequences <- function (regionData){
 }
 
 
-get500baseWindow <- function (regionData) {
-  #' Extracts a 500 base window from each region in the input dataframe, where
+getBaseWindow <- function (regionData, windowSize) {
+  #' Extracts a  window from each region in the input dataframe, where
   #' the middle is the center of the initial region.
   
   pb = txtProgressBar(min = 0, max = nrow(regionData), style = 3, width = 50) 
@@ -105,8 +105,8 @@ get500baseWindow <- function (regionData) {
     if(regionData$width[row] %% 2 == 0) {middle = regionData$width[row]/2}
     
     newMid = regionData$start[row] + middle
-    regionData$start[row] = newMid - 249
-    regionData$end[row] = newMid + 250
+    regionData$start[row] = newMid - (windowSize/2 -1)
+    regionData$end[row] = newMid + (windowSize/2)
     regionData$width[row] = regionData$end [row] - regionData$start[row] + 1
     
     setTxtProgressBar(pb, row)
@@ -168,7 +168,7 @@ createCellTopicDataFrame <- function (cellTopicAssignments, dimReductionCoords ,
   return (cellData)
 }
 
-getCellTypePerRegion  <- function (ATACseqData, metadata) {
+getCellTypePerRegion  <- function (ATACseqData, metadata, countType) {
   #' Generates a dataframe with ATAC-seq read counts per cell Type for each DNA region.
   
   #Create empty dataframe with the corresponding columns to specify the location
@@ -201,7 +201,13 @@ getCellTypePerRegion  <- function (ATACseqData, metadata) {
    for (cellType in cellTypes) {
     #Get index for columns of a given type
     cellsOfAType = metadata[metadata$level1 == cellType, 'sample_name']
-    cellTypeSums = rowSums(ATACseqData [, cellsOfAType])
+    if (countType == 'reads'){
+      #Count the reads
+      cellTypeSums = rowSums(ATACseqData [, cellsOfAType]) }
+    else if (countType == 'cells') {
+      #Count the cells
+      cellTypeSums = rowSums(ATACseqData [, cellsOfAType]>0) }
+    
     cellTypePerRegion [, cellType] = cellTypeSums
     
   }
@@ -212,38 +218,3 @@ getCellTypePerRegion  <- function (ATACseqData, metadata) {
   return (cellTypePerRegion)
 }
 
-transformReadCountsToLog <- function (cellTypesPerRegion, metadata){
-  
-  ### Get number of cells per type
-  #Get names of cell types
-  cellTypes =  unlist(unique( metadata['level1']))
-  
-  
-  #Create empty list to store counts
-  numberCellsPerType = vector(mode = "list", length = (length(cellTypes)))
-  #Add counts to list
-  for (type in 1: length(cellTypes)){
-    numberCellsPerType [[type]] = nrow(subset(metadata, level1 == cellTypes[[type]]))
-  }
-  names(numberCellsPerType) = cellTypes
-  
-  #Get mean of cell numbers
-  meanCells <- mean(unlist(numberCellsPerType))
-  
-  numberCellsPerTypeWeight = vector(mode = "list", length = (length(cellTypes)))
-  #Get weight of each cell type
-  for (i in 1: length(numberCellsPerType)){
-    numberCellsPerTypeWeight [[i]] = numberCellsPerType[[i]]/meanCells
-  }
-  names(numberCellsPerTypeWeight) = cellTypes
-  
-  #Iterate over every row in the input dataframe
-  for (row in 1:nrow (cellTypesPerRegion)) {
-    #Normalize coutns using weight
-    for (type in cellTypes){
-    cellTypesPerRegion[row, type] = log(cellTypesPerRegion[row, type]/unlist(numberCellsPerTypeWeight[type]) +1)
-    }
-  }
-  
-  return (cellTypesPerRegion)
-}

@@ -6,13 +6,13 @@ source('utils/CNNcellTypesFunctions.R')
 source('utils/data.R')
 
 #Define path to store plots
-pathToPlotsDir <- 'plots/cellTypePrediction/readCountOutput_1000bp'
+pathToPlotsDir <- 'plots/cellTypePrediction/subsetInputMed_readCountOutput'
 if (!dir.exists(file.path (pathToPlotsDir))){
   dir.create(file.path (pathToPlotsDir))
 }
 
 #Define path to store outputs
-pathToOutputsDir <- 'outputs/cellTypePrediction/readCountOutput_1000bp'
+pathToOutputsDir <- 'outputs/cellTypePrediction/subsetInputMed_readCountOutput'
 if (!dir.exists(file.path (pathToOutputsDir))){
   dir.create(file.path (pathToOutputsDir))
 }
@@ -43,7 +43,7 @@ cellTypesPerRegion <- addDNAsequences(cellTypesPerRegion)
 #cellTypesPerRegion <- binarizeCellTypeScore (cellTypesPerRegion, thresholdNumeric= 5)
 
 #Save dataframe
-write_xlsx (df, file.path(pathToOutputsDir,'cellTypesPeRegionCNN.xlsx'))
+write_xlsx (cellTypesPerRegion, file.path(pathToOutputsDir,'cellTypesPeRegionCNN.xlsx'))
 #cellTypesPerRegion= read_xlsx(file.path(pathToOutputsDir,'cellTypesPeRegionCNN.xlsx'))
 
 #Get indices for test and train sets

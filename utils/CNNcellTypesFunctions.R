@@ -239,10 +239,6 @@ createModelRegression <- function (inputShape, nClasses){
     layer_max_pooling_1d(pool_size=4) %>%
     layer_dropout(0.25) %>%
     layer_flatten() %>%
-    #layer_dense(200,activation="relu")%>%
-    #layer_dropout(0.25)%>%
-    #layer_dense(50,activation="relu")%>%
-    #layer_dropout(0.25)%>%
     layer_dense(units = nClasses, activation = 'relu')
   
   cnnModel %>% compile(

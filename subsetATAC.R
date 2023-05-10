@@ -9,10 +9,13 @@ source('utils/data.R')
 ATACpeaks <- readRDS('data/SNAREseqData/Zhang_BICCN-H_20190523-20190611_huMOp_Final_AC_Peaks.RDS')
 #Empty vector to store variance per region
 rowSD <- c()
+pb = txtProgressBar(min = 0, max = nrow (ATACpeaks)/3456, style = 3, width = 50) 
 #Calculate variance per region and fill in vector
 for (i in seq(1, nrow(ATACpeaks), 3457)){
   rowSD <- c(rowSD, rowSds(as.matrix(ATACpeaks[i:(i+3456),])))
+  setTxtProgressBar(pb, i)
 }
+close(pb)
 
 #Subset based on variance 
 ATACsubset3rdQ <- ATACpeaks[which(rowSD> summary(rowSD)['3rd Qu.']), ]

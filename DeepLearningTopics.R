@@ -2,6 +2,7 @@ library(keras)
 library(writexl)
 library(readxl)
 source('utils/CNNtopicsFunctions.R')
+library(dplyr)
 
 #Define path to store plots
 pathToPlotsDir <- 'plots/cellTypeFromTopic'
@@ -110,4 +111,34 @@ for (cellType in cellTypes){
   }
 }
 
+#Extract all topic scores per region
 regionData <- read_xlsx('outputs/cisTopic/run3/regionData.xlsx')
+
+#TOPIC DIFFERENCE PER CELL TYPE (from plots and averages):
+#GB -> {7, 13}
+#GL -> {4, 6, 10}
+
+#GB Regions
+#Extract highest 10 regions for each relevant topic
+Topic7<- regionData[order(regionData$Topic7, decreasing = TRUE ), ][1:10, c('seqnames', 'start', 'end', 'Topic7')]
+colnames(Topic7)[4] <- "TopicScore"
+Topic13<- regionData[order(regionData$Topic13, decreasing = TRUE ), ][1:10, c('seqnames', 'start', 'end', 'Topic13')]
+colnames(Topic13)[4] <- "TopicScore"
+#Merge in one dataframe
+topicGB <- rbind (Topic7, Topic13)
+#Remove duplicated
+topicGB <- topicGB[!duplicated(topicGB[ , c('seqnames', 'start', 'end')]),]
+
+#GL Regions
+#GB Regions
+Topic4<- regionData[order(regionData$Topic4, decreasing = TRUE ), ][1:10, c('seqnames', 'start', 'end', 'Topic4')]
+colnames(Topic4)[4] <- "TopicScore"
+Topic6<- regionData[order(regionData$Topic6, decreasing = TRUE ), ][1:10, c('seqnames', 'start', 'end', 'Topic6')]
+colnames(Topic6)[4] <- "TopicScore"
+Topic10<- regionData[order(regionData$Topic10, decreasing = TRUE ), ][1:10, c('seqnames', 'start', 'end', 'Topic10')]
+colnames(Topic10)[4] <- "TopicScore"
+topicGL <- rbind (Topic4, Topic6, Topic10)
+topicGL <- topicGL[!duplicated(topicGL[ , c('seqnames', 'start', 'end')]),]
+
+
+

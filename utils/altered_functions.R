@@ -1,4 +1,9 @@
-selectModelModified <- function (object, select = NULL, type = "derivative", keepBinaryMatrix = TRUE,
+#Functions from the cisTopic package (https://github.com/aertslab/cisTopic) modified
+#to run without connection to X11 display
+
+library(plyr)
+
+selectModelModified <- function (object, pathFolder, select = NULL, type = "derivative", keepBinaryMatrix = TRUE,
           keepModels = TRUE, ...)
 {
   if (as.vector(class(object)) == "cisTopic") {
@@ -40,7 +45,7 @@ selectModelModified <- function (object, select = NULL, type = "derivative", kee
       }
     }
   }
-  pdf(file = 'model_selection.pdf')
+  pdf(file = file.path(pathFolder, 'modelSelection.pdf'))
   par(bty = "n")
   plot(object.log.lik$topics, object.log.lik$LL, xlab = "Number of topics",
        ylab = "log P(D|M,T)", type = "o", pch = 16, col = "black",
@@ -193,4 +198,108 @@ selectModelModified <- function (object, select = NULL, type = "derivative", kee
   else if (is.list(object)) {
     return(selected.model)
   }
+}
+
+binarizecisTopicsModified <- function (object, pathFolder, method = "GammaFit", thrP = 0.99, plot = FALSE,
+          cutoffs = NULL)
+{
+  scores <- .getScores(object)
+  object.binarized.cisTopics <- list()
+  pdf(file = file.path(pathFolder, 'binarizedCisTopics.pdf'))
+  par.opts <- par()
+  if (method == "GammaFit") {
+    if (!"fitdistrplus" %in% installed.packages()) {
+      stop("Please, install fitdistrplus: \n install.packages(\"fitdistrplus\")")
+    }
+    else {
+      require(fitdistrplus)
+    }
+    if (is.null(thrP)) {
+      stop("If GammaFit is selected as method, a probability threshold for cutoff in the distribution must be provided.")
+    }
+    for (i in 1:ncol(scores)) {
+      distr <- suppressWarnings(fitdist(scores[, i], "gamma",
+                                        method = "mme"))
+      cutoff <- as.numeric(unlist(quantile(distr, probs = thrP))[1])
+      if (plot) {
+       
+        hist(scores[, i], breaks = 100, prob = TRUE,
+             main = colnames(scores)[i], col = adjustcolor("dodgerblue",
+                                                                       alpha.f = 0.8), xlab = "Score")
+        curve(dgamma(x, rate = as.numeric(unlist(distr[1]$estimate[2])),
+                     shape = as.numeric(unlist(distr[1]$estimate[1]))),
+              add = TRUE, col = "magenta", lwd = 2)
+        abline(v = cutoff, lty = 3, lwd = 2, col = "grey")
+        title(sub = paste("Regions with score > ", signif(cutoff,
+                                                          2), sep = ""))
+        
+      }
+      object.binarized.cisTopics[[colnames(scores)[i]]] <- scores[which(scores[,
+                                                                               i] > cutoff), i, drop = FALSE]
+    }
+  }
+  if (method == "Predefined") {
+    if (is.null(cutoffs)) {
+      stop("If Predefined is selected as method, the threshold cutoffs must be provided.")
+    }
+    if (length(cutoffs) == 1) {
+      cutoffs <- rep(cutoffs, ncol(scores))
+    }
+    else if (length(cutoffs) != ncol(scores)) {
+      stop("Thresholds for all topics are not provided. Check the length of the cutoff vector.")
+    }
+    for (i in 1:length(cutoffs)) {
+      ranking <- scores[order(scores[, i], decreasing = TRUE),
+                        i]
+      cutoffs[i] <- ranking[cutoffs[i] + 1]
+    }
+    if (plot == TRUE) {
+      
+      
+      
+      for (i in 1:ncol(scores)) {
+        par(mfrow = c(1, 1))
+        par(las = 1)
+        hist(scores[, i], breaks = 100, prob = TRUE,
+             main = colnames(scores)[i], col = adjustcolor("dodgerblue",
+                                                                       alpha.f = 0.8), xlab = "Score")
+        abline(v = cutoffs[i], lty = 3, lwd = 2, col = "grey")
+        title(sub = paste("Regions with score > ", signif(cutoffs[i],
+                                                          2), sep = ""))
+      }
+      
+    }
+    object.binarized.cisTopics <- llply(1:ncol(scores), function(i) scores[which(scores[,
+                                                                                        i] > cutoffs[i]), i, drop = FALSE])
+  }
+  object.binarized.cisTopics <- llply(1:ncol(scores), function(i) object.binarized.cisTopics[[i]][order(object.binarized.cisTopics[[i]][,
+                                                                                                                                        1], decreasing = TRUE), , drop = FALSE])
+  names(object.binarized.cisTopics) <- colnames(scores)
+  object@binarized.cisTopics <- object.binarized.cisTopics
+  
+  
+  par(mfrow = c(1, 1))
+  par(las = 2)
+  barplot(sapply(object.binarized.cisTopics, nrow), col = adjustcolor("dodgerblue",
+                                                                                  alpha.f = 0.8), main = "Number of regions selected per topic")
+  
+  suppressWarnings(par(par.opts))
+  dev.off()
+  
+  return(object)
+}
+
+#Helper Function
+.getScores <- function(
+    object
+){
+  scores <- object@region.data[, grep('Scores_Topic', colnames(object@region.data))]
+  
+  # Check info
+  if (ncol(scores) < 1){
+    stop('Please, run getRegionsScores() first.')
+  }
+  
+  colnames(scores) <- paste('Topic', 1:ncol(scores), sep='')
+  return(scores)
 }

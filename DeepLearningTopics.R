@@ -121,8 +121,10 @@ regionData <- read_xlsx('outputs/cisTopic/run3/regionData.xlsx')
 #GB Regions
 #Extract highest 10 regions for each relevant topic
 Topic7<- regionData[order(regionData$Topic7, decreasing = TRUE ), ][1:10, c('seqnames', 'start', 'end', 'Topic7')]
+Topic7['Topic'] <- 7
 colnames(Topic7)[4] <- "TopicScore"
 Topic13<- regionData[order(regionData$Topic13, decreasing = TRUE ), ][1:10, c('seqnames', 'start', 'end', 'Topic13')]
+Topic13['Topic'] <- 13
 colnames(Topic13)[4] <- "TopicScore"
 #Merge in one dataframe
 topicGB <- rbind (Topic7, Topic13)
@@ -132,10 +134,13 @@ topicGB <- topicGB[!duplicated(topicGB[ , c('seqnames', 'start', 'end')]),]
 #GL Regions
 #GB Regions
 Topic4<- regionData[order(regionData$Topic4, decreasing = TRUE ), ][1:10, c('seqnames', 'start', 'end', 'Topic4')]
+Topic4['Topic'] <- 4
 colnames(Topic4)[4] <- "TopicScore"
 Topic6<- regionData[order(regionData$Topic6, decreasing = TRUE ), ][1:10, c('seqnames', 'start', 'end', 'Topic6')]
+Topic6['Topic'] <- 6
 colnames(Topic6)[4] <- "TopicScore"
 Topic10<- regionData[order(regionData$Topic10, decreasing = TRUE ), ][1:10, c('seqnames', 'start', 'end', 'Topic10')]
+Topic10['Topic'] <- 10
 colnames(Topic10)[4] <- "TopicScore"
 topicGL <- rbind (Topic4, Topic6, Topic10)
 topicGL <- topicGL[!duplicated(topicGL[ , c('seqnames', 'start', 'end')]),]
